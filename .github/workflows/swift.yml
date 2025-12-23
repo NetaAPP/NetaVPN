@@ -9,45 +9,50 @@ on:
 jobs:
   build_ios:
     runs-on: macos-latest
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
 
-    - name: Set up Flutter
-      uses: subosito/flutter-action@v2
+    steps:
+    # 1️⃣ 레포 클론
+    - uses: actions/checkout@v4
+
+    # 2️⃣ 이전 Flutter 캐시 제거
+    - name: Remove old Flutter cache
+      run: rm -rf $HOME/flutter
+
+    # 3️⃣ Flutter 설치 (강제 최신 버전, 캐시 무시)
+    - uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.13.0'
         channel: 'stable'
-        cache: true
+        cache: false
 
+    # 4️⃣ Flutter & Dart 버전 확인
     - name: Check Flutter & Dart version
       run: flutter --version
 
+    # 5️⃣ Flutter 의존성 설치
     - name: Install Flutter dependencies
       run: flutter pub get
 
-    - name: Install CocoaPods
-      run: gem install cocoapods
+    # 6️⃣ iOS 프로젝트 생성 (Runner.xcodeproj 없는 경우)
+    - name: Create iOS project if missing
+      run: |
+        if [ ! -f ios/Runner.xcodeproj ]; then
+          flutter create .
+        fi
 
-    - name: Prepare iOS Pods
+    # 7️⃣ CocoaPods 설치
+    - name: Install CocoaPods
       run: |
         cd ios
-        # 만약 Podfile이 없다면 flutter가 ios 설정 생성
-        if [ ! -f Podfile ]; then
-          flutter pub get
-          flutter build ios --no-codesign
-        fi
-        pod install --repo-update
+        pod install
         cd ..
 
-    - name: Build IPA (flutter build ipa)
-      env:
-        FLUTTER_BUILD_MODE: release
-      run: |
-        # ExportOptions.plist 경로는 필요에 맞게 수정
-        flutter build ipa --export-options-plist=ios/ExportOptions.plist --no-codesign
+    # 8️⃣ Flutter iOS 빌드 (서명 없이)
+    - name: Build iOS IPA
+      run: flutter build ios --release --no-codesign
 
-    - name: Upload IPA artifact
+    # 9️⃣ 빌드된 IPA 업로드
+    - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
         name: ipa
