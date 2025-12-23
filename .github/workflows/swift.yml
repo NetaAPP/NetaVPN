@@ -1,45 +1,80 @@
 name: NetaVPN iOS Build
 
 on:
-  push:
+  push: 
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
-  build_ios:
+  build_ios: 
     runs-on: macos-latest
 
     steps:
+    # 1️⃣ 레포 클론
     - uses: actions/checkout@v4
 
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
+    # 2️⃣ Xcode 버전 설정
+    - name: Set Xcode version
+      run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+
+    # 3️⃣ 이전 Flutter 캐시 제거
+    - name: Remove old Flutter cache
+      run: rm -rf $HOME/flutter
+
+    # 4️⃣ Flutter 설치 (안정 버전)
+    - uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.13.0'
         channel: 'stable'
         cache: false
 
+    # 5️⃣ Flutter & Dart 버전 확인
     - name: Check Flutter & Dart version
       run: flutter --version
 
+    # 6️⃣ Flutter 의존성 설치
     - name: Install Flutter dependencies
-      run: flutter pub get
+      run:  flutter pub get
 
-    - name: Ensure CocoaPods installed
-      run: sudo gem install cocoapods
+    # 7️⃣ iOS 폴더 확인
+    - name: Check iOS directory
+      run: ls -la ios/
 
-    - name: Install iOS pods
+    # 8️⃣ CocoaPods 업데이트 및 설치
+    - name:  Update CocoaPods
       run: |
+        sudo gem install cocoapods
         cd ios
-        pod install
+        pod repo update
+        pod install --repo-update
         cd ..
 
-    - name: Build iOS IPA
+    # 9️⃣ Flutter clean & get (재설정)
+    - name: Flutter clean and get
+      run: |
+        flutter clean
+        flutter pub get
+
+    # 🔟 Flutter iOS 빌드
+    - name: Build iOS (Debug mode first)
+      run: flutter build ios --debug --no-codesign
+
+    # 1️⃣1️⃣ Release 빌드
+    - name: Build iOS Release
       run: flutter build ios --release --no-codesign
 
-    - name: Upload IPA
+    # 1️⃣2️⃣ 빌드 결과 확인
+    - name: Check build artifacts
+      run: |
+        find build/ios -type f -name "*. app" 2>/dev/null || echo "No . app found"
+        find build/ios -type f -name "*.ipa" 2>/dev/null || echo "No . ipa found"
+
+    # 1️⃣3️⃣ 빌드 아티팩트 업로드 (조건부)
+    - name: Upload build artifacts
+      if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: ipa
-        path: build/ios/ipa
+        name: ios-build
+        path: build/ios/Release-iphoneos/
+        if-no-files-found: warn
