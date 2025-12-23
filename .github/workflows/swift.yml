@@ -1,45 +1,54 @@
 name: NetaVPN iOS Build
 
-on: push: branches: [ "main" ] pull_request: branches: [ "main" ]
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
-jobs: build_ios: runs-on: macos-latest steps: - uses: actions/checkout@v4
+jobs:
+  build_ios:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.13.0'
+        channel: 'stable'
+        cache: true
 
-# Flutter 설치 (필요 버전)
-- uses: subosito/flutter-action@v2
-  with:
-    flutter-version: '3.13.0'
-    channel: 'stable'
-    cache: true
+    - name: Check Flutter & Dart version
+      run: flutter --version
 
-- name: Check Flutter & Dart
-  run: flutter --version
+    - name: Install Flutter dependencies
+      run: flutter pub get
 
-- name: Install Flutter deps
-  run: flutter pub get
+    - name: Install CocoaPods
+      run: gem install cocoapods
 
-- name: Install CocoaPods
-  run: gem install cocoapods
+    - name: Prepare iOS Pods
+      run: |
+        cd ios
+        # 만약 Podfile이 없다면 flutter가 ios 설정 생성
+        if [ ! -f Podfile ]; then
+          flutter pub get
+          flutter build ios --no-codesign
+        fi
+        pod install --repo-update
+        cd ..
 
-- name: Prepare iOS pods
-  run: |
-    cd ios
-    if [ ! -f Podfile ]; then
-      flutter pub get
-      flutter build ios --no-codesign
-    fi
-    pod install --repo-update
-    cd ..
+    - name: Build IPA (flutter build ipa)
+      env:
+        FLUTTER_BUILD_MODE: release
+      run: |
+        # ExportOptions.plist 경로는 필요에 맞게 수정
+        flutter build ipa --export-options-plist=ios/ExportOptions.plist --no-codesign
 
-# 빌드: flutter build ipa 권장(서명 설정 필요 시 옵션 추가)
-- name: Build IPA (flutter build ipa)
-  env:
-    FLUTTER_BUILD_MODE: release
-  run: |
-    flutter build ipa --export-options-plist=ios/ExportOptions.plist --no-codesign
-
-- name: Upload IPA
-  uses: actions/upload-artifact@v4
-  with:
-    name: ipa
-    path: build/ios/ipa
+    - name: Upload IPA artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ipa
+        path: build/ios/ipa
