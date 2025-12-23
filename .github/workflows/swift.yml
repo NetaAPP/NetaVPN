@@ -3,7 +3,7 @@ name: NetaVPN iOS Build
 on:
   push:
     branches: [ "main" ]
-  pull_request: 
+  pull_request:
     branches: [ "main" ]
 
 jobs:
@@ -14,12 +14,12 @@ jobs:
     # 1️⃣ 레포 클론
     - uses: actions/checkout@v4
 
-    # 2️⃣ Xcode 버전 설정
+    # 2️⃣ Xcode 설정
     - name: Set Xcode version
-      run: sudo xcode-select --switch /Applications/Xcode. app/Contents/Developer
+      run:  sudo xcode-select --switch /Applications/Xcode. app/Contents/Developer
 
     # 3️⃣ Flutter 설치
-    - uses: subosito/flutter-action@v2
+    - uses:  subosito/flutter-action@v2
       with:
         flutter-version: '3.13.0'
         channel: 'stable'
@@ -33,7 +33,7 @@ jobs:
     - name: Install Flutter dependencies
       run: flutter pub get
 
-    # 6️⃣ iOS 폴더 확인
+    # 6️⃣ iOS 디렉토리 확인
     - name: Check iOS directory
       run: |
         echo "=== iOS 디렉토리 목록 ==="
@@ -46,27 +46,34 @@ jobs:
           echo "❌ Podfile 없음"
         fi
 
-    # 7️⃣ CocoaPods 설치 및 Pod install
+    # 7️⃣ CocoaPods 업데이트 및 Pod install
     - name: Install CocoaPods dependencies
       run: |
         cd ios
+        pod repo update
         pod install --repo-update
         cd .. 
 
-    # 8️⃣ Flutter iOS 빌드
-    - name: Build iOS
+    # 8️⃣ Flutter iOS 빌드 (Debug 먼저 테스트)
+    - name: Build iOS Debug
+      run: flutter build ios --debug --no-codesign
+
+    # 9️⃣ Flutter iOS 빌드 (Release)
+    - name: Build iOS Release
       run: flutter build ios --release --no-codesign
 
-    # 9️⃣ 빌드 결과 확인
+    # 🔟 빌드 결과 확인
     - name: Check build artifacts
-      run: |
-        find build/ios -type f -name "*.app" 2>/dev/null || echo "No . app found"
-        ls -la build/ios/Release-iphoneos/ || echo "Release-iphoneos directory not found"
+      run:  |
+        echo "=== 빌드 결과 확인 ==="
+        find build/ios -type d -name "*.app" 2>/dev/null | head -5 || echo "No .app found"
+        ls -la build/ios/Release-iphoneos/ 2>/dev/null || echo "Release-iphoneos directory not found"
 
-    # 🔟 아티팩트 업로드
-    - name: Upload build artifacts
+    # 1️⃣1️⃣ 아티팩트 업로드
+    - name: Upload iOS build
       if: success()
       uses: actions/upload-artifact@v4
-      with:
-        name:  ios-build
+      with: 
+        name: ios-build-release
         path: build/ios/Release-iphoneos/
+        if-no-files-found: warn
