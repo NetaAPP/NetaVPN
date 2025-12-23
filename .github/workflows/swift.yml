@@ -35,10 +35,12 @@ jobs:
 
     # 6️⃣ iOS Podfile 없으면 생성
     - name: Create Podfile if missing
-      run: |
-        if [ ! -f ios/Podfile ]; then
-          flutter create .
-        fi
+    run: |
+     cd ios
+     if [ ! -f Podfile ]; then
+      pod init
+     fi
+     cd ..
 
     # 7️⃣ CocoaPods 설치
     - name: Install CocoaPods
