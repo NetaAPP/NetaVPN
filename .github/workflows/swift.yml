@@ -1,4 +1,4 @@
-name: NetaVPN
+name: NetaVPN iOS Build
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
     # 1️⃣ 레포 클론
     - uses: actions/checkout@v4
 
-    # 2️⃣ 이전 Flutter 캐시 제거 (Dart 버전 문제 방지)
+    # 2️⃣ 이전 Flutter 캐시 제거
     - name: Remove old Flutter cache
       run: rm -rf $HOME/flutter
 
@@ -35,12 +35,12 @@ jobs:
 
     # 6️⃣ iOS Podfile 없으면 생성
     - name: Create Podfile if missing
-    run: |
-     cd ios
-     if [ ! -f Podfile ]; then
-      pod init
-     fi
-     cd ..
+      run: |
+        cd ios
+        if [ ! -f Podfile ]; then
+          pod init
+        fi
+        cd ..
 
     # 7️⃣ CocoaPods 설치
     - name: Install CocoaPods
@@ -53,7 +53,7 @@ jobs:
     - name: Build iOS IPA
       run: flutter build ios --release --no-codesign
 
-    # 9️⃣ 빌드된 IPA 업로드 (v4 사용)
+    # 9️⃣ 빌드된 IPA 업로드
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
