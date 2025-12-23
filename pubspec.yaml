@@ -8,5 +8,5 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.2.0
+  http: ^1.1.0
   csv: ^6.0.0
