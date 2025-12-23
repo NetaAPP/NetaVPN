@@ -1,107 +1,45 @@
 name: NetaVPN iOS Build
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: push: branches: [ "main" ] pull_request: branches: [ "main" ]
 
-jobs:
-  build_ios:
-    runs-on: macos-latest
+jobs: build_ios: runs-on: macos-latest steps: - uses: actions/checkout@v4
 
-    steps:
-    # 1️⃣ 레포 클론
-    - uses: actions/checkout@v4
 
-    # 2️⃣ 이전 Flutter 캐시 제거
-    - name: Remove old Flutter cache
-      run: rm -rf $HOME/flutter
+# Flutter 설치 (필요 버전)
+- uses: subosito/flutter-action@v2
+  with:
+    flutter-version: '3.13.0'
+    channel: 'stable'
+    cache: true
 
-    # 3️⃣ Flutter 설치 (강제 최신 버전, 캐시 무시)
-    - uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.13.0'
-        channel: 'stable'
-        cache: false
+- name: Check Flutter & Dart
+  run: flutter --version
 
-    # 4️⃣ Flutter & Dart 버전 확인
-    - name: Check Flutter & Dart version
-      run: flutter --version
+- name: Install Flutter deps
+  run: flutter pub get
 
-    # 5️⃣ Flutter 의존성 설치
-    - name: Install Flutter dependencies
-      run: flutter pub get
+- name: Install CocoaPods
+  run: gem install cocoapods
 
-    # 6️⃣ CocoaPods 설치
-    - name: Install CocoaPods
-      run: sudo gem install cocoapods
+- name: Prepare iOS pods
+  run: |
+    cd ios
+    if [ ! -f Podfile ]; then
+      flutter pub get
+      flutter build ios --no-codesign
+    fi
+    pod install --repo-update
+    cd ..
 
-    # 7️⃣ iOS 빌드용 Podfile 생성 및 설치
-    - name: Prepare iOS Pods
-      run: |
-        cd ios
-        if [ ! -f Podfile ]; then
-          flutter pub get
-          flutter build ios --no-codesign
-        fi
-        pod install --repo-update
-        cd ..
+# 빌드: flutter build ipa 권장(서명 설정 필요 시 옵션 추가)
+- name: Build IPA (flutter build ipa)
+  env:
+    FLUTTER_BUILD_MODE: release
+  run: |
+    flutter build ipa --export-options-plist=ios/ExportOptions.plist --no-codesign
 
-    # 8️⃣ Flutter iOS 빌드 (서명 없이)
-    - name: Build iOS
-      run: flutter build ios --release --no-codesign
-
-    # 9️⃣ IPA 생성
-    - name: Export IPA
-      run: |
-        mkdir -p build/ios/ipa
-        xcodebuild -workspace ios/Runner.xcworkspace \
-                   -scheme Runner \
-                   -configuration Release \
-                   -sdk iphoneos \
-                   -archivePath build/ios/Runner.xcarchive \
-                   archive
-        xcodebuild -exportArchive \
-                   -archivePath build/ios/Runner.xcarchive \
-                   -exportOptionsPlist ios/ExportOptions.plist \
-                   -exportPath build/ios/ipa
-
-    # 🔟 빌드된 IPA 업로드
-    - name: Upload IPA
-      uses: actions/upload-artifact@v4
-      with:
-        name: ipa
-        path: build/ios/ipa
-    - name: Install CocoaPods
-      run: |
-        sudo gem install cocoapods
-        cd ios
-        pod install --repo-update
-        cd ..
-
-    # 7️⃣ Flutter iOS 빌드 (서명 없이)
-    - name: Build iOS
-      run: flutter build ios --release --no-codesign
-
-    # 8️⃣ IPA 생성
-    - name: Export IPA
-      run: |
-        mkdir -p build/ios/ipa
-        xcodebuild -workspace ios/Runner.xcworkspace \
-                   -scheme Runner \
-                   -configuration Release \
-                   -sdk iphoneos \
-                   -archivePath build/ios/Runner.xcarchive \
-                   archive
-        xcodebuild -exportArchive \
-                   -archivePath build/ios/Runner.xcarchive \
-                   -exportOptionsPlist ios/ExportOptions.plist \
-                   -exportPath build/ios/ipa
-
-    # 9️⃣ 빌드된 IPA 업로드
-    - name: Upload IPA
-      uses: actions/upload-artifact@v4
-      with:
-        name: ipa
-        path: build/ios/ipa
+- name: Upload IPA
+  uses: actions/upload-artifact@v4
+  with:
+    name: ipa
+    path: build/ios/ipa
