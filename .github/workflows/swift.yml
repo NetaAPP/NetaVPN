@@ -1,4 +1,4 @@
-name: NetaVPN
+name: NetaVPN iOS Build
 
 on:
   push:
@@ -7,36 +7,45 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  build_ios:
 
     runs-on: macos-latest
 
     steps:
+    # 1️⃣ 레포 클론
     - uses: actions/checkout@v4
 
-    # Flutter 설치
+    # 2️⃣ 이전 Flutter 캐시 제거 (Dart 버전 문제 방지)
+    - name: Remove old Flutter cache
+      run: rm -rf $HOME/flutter
+
+    # 3️⃣ Flutter 설치 (강제 최신 버전, 캐시 무시)
     - uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.13.0'
         channel: 'stable'
-        cache": false
+        cache: false
 
-    # Flutter dependencies 설치
+    # 4️⃣ Flutter & Dart 버전 확인
+    - name: Check Flutter & Dart version
+      run: flutter --version
+
+    # 5️⃣ Flutter 의존성 설치
     - name: Install Flutter dependencies
       run: flutter pub get
 
-    # iOS Pod 설치 (CocoaPods 필요 시)
+    # 6️⃣ iOS Pod 설치
     - name: Install CocoaPods
       run: |
         cd ios
         pod install
         cd ..
 
-    # iOS 빌드
+    # 7️⃣ Flutter iOS 빌드 (서명 없이)
     - name: Build iOS IPA
       run: flutter build ios --release --no-codesign
 
-    # 빌드 결과 업로드 (v4 사용)
+    # 8️⃣ 빌드된 IPA 업로드 (v4 사용)
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
