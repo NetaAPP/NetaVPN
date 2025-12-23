@@ -34,9 +34,9 @@ jobs:
     - name: Build iOS IPA
       run: flutter build ios --release --no-codesign
 
-    # 빌드 결과 업로드
+    # 빌드 결과 업로드 (v4 사용)
     - name: Upload IPA
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ipa
         path: build/ios/ipa
