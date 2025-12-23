@@ -1,79 +1,39 @@
 name: NetaVPN iOS Build
 
 on:
-  push:
+  push: 
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
-  build_ios:
+  build_ios: 
     runs-on: macos-latest
 
     steps:
-    # 1️⃣ 레포 클론
     - uses: actions/checkout@v4
 
-    # 2️⃣ Xcode 설정
-    - name: Set Xcode version
-      run:  sudo xcode-select --switch /Applications/Xcode. app/Contents/Developer
-
-    # 3️⃣ Flutter 설치
-    - uses:  subosito/flutter-action@v2
+    - uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.13.0'
         channel: 'stable'
         cache: false
 
-    # 4️⃣ Flutter 버전 확인
-    - name: Check Flutter version
-      run:  flutter --version
-
-    # 5️⃣ Flutter 의존성 설치
     - name: Install Flutter dependencies
       run: flutter pub get
 
-    # 6️⃣ iOS 디렉토리 확인
-    - name: Check iOS directory
-      run: |
-        echo "=== iOS 디렉토리 목록 ==="
-        ls -la ios/
-        echo ""
-        echo "=== Podfile 확인 ==="
-        if [ -f ios/Podfile ]; then
-          echo "✅ Podfile 존재"
-        else
-          echo "❌ Podfile 없음"
-        fi
-
-    # 7️⃣ CocoaPods 업데이트 및 Pod install
     - name: Install CocoaPods dependencies
       run: |
         cd ios
-        pod repo update
         pod install --repo-update
         cd .. 
 
-    # 8️⃣ Flutter iOS 빌드 (Debug 먼저 테스트)
-    - name: Build iOS Debug
-      run: flutter build ios --debug --no-codesign
-
-    # 9️⃣ Flutter iOS 빌드 (Release)
     - name: Build iOS Release
       run: flutter build ios --release --no-codesign
 
-    # 🔟 빌드 결과 확인
-    - name: Check build artifacts
-      run:  |
-        echo "=== 빌드 결과 확인 ==="
-        find build/ios -type d -name "*.app" 2>/dev/null | head -5 || echo "No .app found"
-        ls -la build/ios/Release-iphoneos/ 2>/dev/null || echo "Release-iphoneos directory not found"
-
-    # 1️⃣1️⃣ 아티팩트 업로드
     - name: Upload iOS build
-      if: success()
       uses: actions/upload-artifact@v4
-      with: 
-        name: ios-build-release
+      with:
+        name:  ios-build-release
         path: build/ios/Release-iphoneos/
-        if-no-files-found: warn
+        if-no-files-found:  warn
