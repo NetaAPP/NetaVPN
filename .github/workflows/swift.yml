@@ -33,7 +33,46 @@ jobs:
     - name: Install Flutter dependencies
       run: flutter pub get
 
-    # 6️⃣ CocoaPods 설치 확인
+    # 6️⃣ CocoaPods 설치
+    - name: Install CocoaPods
+      run: sudo gem install cocoapods
+
+    # 7️⃣ iOS 빌드용 Podfile 생성 및 설치
+    - name: Prepare iOS Pods
+      run: |
+        cd ios
+        if [ ! -f Podfile ]; then
+          flutter pub get
+          flutter build ios --no-codesign
+        fi
+        pod install --repo-update
+        cd ..
+
+    # 8️⃣ Flutter iOS 빌드 (서명 없이)
+    - name: Build iOS
+      run: flutter build ios --release --no-codesign
+
+    # 9️⃣ IPA 생성
+    - name: Export IPA
+      run: |
+        mkdir -p build/ios/ipa
+        xcodebuild -workspace ios/Runner.xcworkspace \
+                   -scheme Runner \
+                   -configuration Release \
+                   -sdk iphoneos \
+                   -archivePath build/ios/Runner.xcarchive \
+                   archive
+        xcodebuild -exportArchive \
+                   -archivePath build/ios/Runner.xcarchive \
+                   -exportOptionsPlist ios/ExportOptions.plist \
+                   -exportPath build/ios/ipa
+
+    # 🔟 빌드된 IPA 업로드
+    - name: Upload IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: ipa
+        path: build/ios/ipa
     - name: Install CocoaPods
       run: |
         sudo gem install cocoapods
