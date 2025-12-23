@@ -1,6 +1,3 @@
-# Podfile
-# The target 'Runner' is defined here. The Podfile structure should match the runner target.
-
 platform :ios, '11.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
@@ -13,37 +10,21 @@ project 'Runner', {
 }
 
 def flutter_root
-  generated_xcode_build_setting_with_key('FLUTTER_ROOT')
+  get_flutter_root
 end
 
-def flutter_engine_dir
-  File.expand_path(File.join(packages_config_path, '..', 'Flutter', 'Flutter.framework'), __FILE__)
+def flutter_env
+  return FLUTTER_ROOT unless FLUTTER_ROOT.nil?
+  File.expand_path(ENV['FLUTTER_ROOT'] || "$HOME/flutter", __FILE__)
 end
 
-def flutter_exec_cmd
-  "#{flutter_root}/bin/flutterw"
-end
-
-def flutter_plugins_dir
-  File.expand_path(File.join(flutter_root, '..', 'Flutter', '.symlinks', 'plugins'), __FILE__)
-end
-
-def flutter_symlink_plugins
-  flutter_plugins = parse_flutter_plugins_file(flutter_plugins_dir)
-  flutter_plugins.each do |name, path|
-    symlink_flutter_plugin(name, path)
-  end
+def get_flutter_root
+  File.expand_path(File.join(packages_path, '..')
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
-    flutter_additional_ios_build_settings(target)
-    target.build_configurations.each do |config|
-      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
-        '$(inherited)',
-        'FLUTTER_FRAMEWORK_DIR=#{File.expand_path("Flutter").bytes.unpack("H*")[0].unpack("A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2").join}',
-      ]
-    end
+    flutter_post_install(target)
   end
 end
 
@@ -51,5 +32,8 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  flutter_install_all_ios_build_settings_ipa target
+  Flutter::Flutter.parse_multiline_properties_file("${FLUTTER_ROOT}/packages/flutter_tools/lib/src/build_info.txt").each do |k,v|
+    ENV[k] = v
+  end
 end
