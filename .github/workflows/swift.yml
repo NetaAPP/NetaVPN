@@ -1,4 +1,4 @@
-name: NetaVPN iOS Build
+name: NetaVPN
 
 on:
   push:
@@ -8,7 +8,6 @@ on:
 
 jobs:
   build_ios:
-
     runs-on: macos-latest
 
     steps:
@@ -34,18 +33,25 @@ jobs:
     - name: Install Flutter dependencies
       run: flutter pub get
 
-    # 6️⃣ iOS Pod 설치
+    # 6️⃣ iOS Podfile 없으면 생성
+    - name: Create Podfile if missing
+      run: |
+        if [ ! -f ios/Podfile ]; then
+          flutter create .
+        fi
+
+    # 7️⃣ CocoaPods 설치
     - name: Install CocoaPods
       run: |
         cd ios
         pod install
         cd ..
 
-    # 7️⃣ Flutter iOS 빌드 (서명 없이)
+    # 8️⃣ Flutter iOS 빌드 (서명 없이)
     - name: Build iOS IPA
       run: flutter build ios --release --no-codesign
 
-    # 8️⃣ 빌드된 IPA 업로드 (v4 사용)
+    # 9️⃣ 빌드된 IPA 업로드 (v4 사용)
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
