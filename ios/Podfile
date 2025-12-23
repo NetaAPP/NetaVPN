@@ -1,5 +1,5 @@
 # Podfile
-# CocoaPods documentation: https://guides.cocoapods.org/syntax/podfile.html
+# The target 'Runner' is defined here. The Podfile structure should match the runner target.
 
 platform :ios, '11.0'
 
@@ -13,28 +13,26 @@ project 'Runner', {
 }
 
 def flutter_root
-  generated_xcode_build_settings_path = File.expand_path(File.join(
-    File.dirname(__FILE__), 'Flutter', 'Generated.xcconfig'), __FILE__)
-  unless File.exist?(generated_xcode_build_settings_path)
-    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
-  end
-
-  File.foreach(generated_xcode_build_settings_path) do |line|
-    matches = line.match(/FLUTTER_ROOT\=(.*)/)
-    return matches[1].strip if matches
-  end
-  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+  generated_xcode_build_setting_with_key('FLUTTER_ROOT')
 end
 
-require File.expand_path(File.join(packages_path, 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+def flutter_engine_dir
+  File.expand_path(File.join(packages_config_path, '..', 'Flutter', 'Flutter.framework'), __FILE__)
+end
 
-flutter_ios_podfile_setup
+def flutter_exec_cmd
+  "#{flutter_root}/bin/flutterw"
+end
 
-target 'Runner' do
-  use_frameworks!
-  use_modular_headers!
+def flutter_plugins_dir
+  File.expand_path(File.join(flutter_root, '..', 'Flutter', '.symlinks', 'plugins'), __FILE__)
+end
 
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+def flutter_symlink_plugins
+  flutter_plugins = parse_flutter_plugins_file(flutter_plugins_dir)
+  flutter_plugins.each do |name, path|
+    symlink_flutter_plugin(name, path)
+  end
 end
 
 post_install do |installer|
@@ -43,8 +41,15 @@ post_install do |installer|
     target.build_configurations.each do |config|
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
-        'PERMISSION_CAMERA=1',
+        'FLUTTER_FRAMEWORK_DIR=#{File.expand_path("Flutter").bytes.unpack("H*")[0].unpack("A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2").join}',
       ]
     end
   end
+end
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
